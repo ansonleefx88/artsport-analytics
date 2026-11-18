@@ -1,8 +1,9 @@
 // Analytics report for the CRM (password: header x-crm-key = CRM_PASSWORD)
 // GET /api/analytics?site=adtomatic&range=7d|today|yesterday|30d|custom&from=YYYY-MM-DD&to=YYYY-MM-DD
+//     &export=sessions|events  -> CSV download (raw data for analysis)
 //     &source=&campaign=&adset=&ad=&dev=
 import { authed } from './_lib.js';
-import { rangeSessions, report, myDate } from './_an.js';
+import { rangeSessions, report, myDate, exportEvents, exportSessions } from './_an.js';
 
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' } });
 
@@ -21,6 +22,14 @@ export async function GET(request) {
   const filt = {}; for (const k of ['source', 'campaign', 'adset', 'ad', 'dev']) if (q.get(k)) filt[k] = q.get(k);
 
   if (process.env.ANALYTICS_ENABLED === '0') return json({ ok: true, disabled: true, sites, site, from, to });
+  const exp = q.get('export');
+  if (exp === 'events' || exp === 'sessions') {
+    try {
+      const csv = exp === 'events' ? await exportEvents(site, from, to) : exportSessions(await rangeSessions(site, from, to), site);
+      return new Response(csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'cache-control': 'private, no-store',
+        'content-disposition': `attachment; filename="${site}-${exp}-${from}_${to}.csv"` } });
+    } catch (err) { console.error('export failed', err); return json({ ok: false, error: 'export failed' }, 500); }
+  }
   try {
     const all = await rangeSessions(site, from, to);
     return json({ ok: true, sites, site, from, to, filters: filt, ...report(all, site, filt) });

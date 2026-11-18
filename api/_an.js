@@ -274,3 +274,60 @@ export function report(all, site, filt = {}) {
     options: Object.fromEntries(Object.entries(options).map(([k, v]) => [k, Object.entries(v).sort((a, b) => b[1] - a[1]).slice(0, 60).map((x) => x[0])]))
   };
 }
+
+// ---------- raw export (for offline analysis) ----------
+const CSV = (rows) => '﻿' + rows.map((r) => r.map((v) => {
+  v = v == null ? '' : String(v);
+  if (/^[=+\-@]/.test(v)) v = "'" + v;                         // spreadsheet formula injection guard
+  return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}).join(',')).join('\n');
+
+function datesBetween(from, to) {
+  const out = [];
+  for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z') && out.length < 92; t += 864e5) out.push(new Date(t).toISOString().slice(0, 10));
+  return out;
+}
+const myIso = (ts) => new Date(ts + MY).toISOString().replace('T', ' ').slice(0, 19);
+
+// Every single event, one row each — the rawest data we keep
+export async function exportEvents(site, from, to) {
+  const head = ['time_my', 'session_id', 'visitor_id', 'pageview_id', 'page', 'event', 'ms_on_page', 'label', 'section', 'link_to', 'y_pct',
+    'scroll_pct', 'video', 'video_progress', 'form', 'field', 'engaged_s', 'max_scroll', 'section_dwell_json', 'props_json',
+    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'screen_w', 'country'];
+  const rows = [head];
+  for (const d of datesBetween(from, to)) {
+    const blobs = await listAll(`an/${site}/raw/${d}/`);
+    const recs = (await pool(blobs, 25, (b) => getJson(b.pathname).catch(() => null))).filter(Boolean).sort((a, b) => a.at - b.at);
+    for (const r of recs) {
+      const s = r.page.src || {};
+      for (const e of r.ev) {
+        const props = {}; for (const k in e) if (k.startsWith('p_')) props[k.slice(2)] = e[k];
+        rows.push([myIso(r.ts + e.t), r.sid, r.vid, r.pv, normPath(r.page.path), e.n, Math.round(e.t), e.l, e.s, e.h, e.y,
+          e.n === 'scroll' ? e.d : '', e.v, e.a, e.f, e.fld, e.e, e.mx, e.dw ? JSON.stringify(e.dw) : '', Object.keys(props).length ? JSON.stringify(props) : '',
+          s.source, s.medium, s.campaign, s.term, s.content, s.campaign_id, s.adset_id, s.ad_id, s.placement, s.fbclid ? 1 : '', r.page.ref, r.page.dev, r.page.w, r.cc]);
+      }
+    }
+  }
+  return CSV(rows);
+}
+
+// One row per session — easiest table for analysis (conversion vs. behaviour)
+export function exportSessions(all, site) {
+  const cfg = cfgFor(site);
+  const isGoal = (s) => cfg.goal.some((g) => s.n[g] > 0);
+  const head = ['session_id', 'visitor_id', 'start_my', 'date', 'hour', 'weekday', 'entry_page', 'pages', 'pageviews', 'engaged_s',
+    'max_scroll_main', 'clicks', 'sections_seen', 'video_max_pct', 'form_started', 'fields_touched', 'fields_filled', 'last_field',
+    'converted', 'whatsapp_confirm', 'calendar_add', 'events_json',
+    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'country'];
+  const rows = [head];
+  const main = cfg.mainPage || '/';
+  for (const s of all.sort((a, b) => a.ts - b.ts)) {
+    const src = s.src || {}, t = new Date(s.ts + MY);
+    rows.push([s.sid, s.vid, myIso(s.ts), myDate(s.ts), t.getUTCHours(), ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][t.getUTCDay()], s.entry,
+      Object.keys(s.pages).join(' > '), Object.values(s.pages).reduce((x, y) => x + y, 0), Object.values(s.pvEng).reduce((x, y) => x + y, 0),
+      s.scr[main] || 0, s.n.click || 0, Object.keys(s.sec).length, Math.max(0, ...Object.values(s.vid_)), s.n.form_start ? 1 : 0,
+      Object.keys(s.fld).length, Object.keys(s.fdone).length, s.lastf, isGoal(s) ? 1 : 0, s.n.whatsapp_confirm ? 1 : 0, s.n.calendar_add ? 1 : 0, JSON.stringify(s.n),
+      src.source, src.medium, src.campaign, src.term, src.content, src.campaign_id, src.adset_id, src.ad_id, src.placement, src.fbclid ? 1 : '', s.ref, s.dev, s.cc]);
+  }
+  return CSV(rows);
+}

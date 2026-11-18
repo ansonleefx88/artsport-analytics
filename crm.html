@@ -135,6 +135,8 @@ body{background:#F5F5F5}
 <select id="an-site" class="tsel" aria-label="网站"></select>
 <select id="an-range" class="tsel" aria-label="时间范围"><option value="today">今天</option><option value="yesterday">昨天</option><option value="7d" selected>最近 7 天</option><option value="30d">最近 30 天</option></select>
 <button class="tbtn" id="an-refresh" type="button">刷新</button>
+<button class="tbtn" id="an-exp-s" type="button" title="一个 session 一行：来源、Ad、看了什么、点了几次、有没有转化">导出 Sessions CSV</button>
+<button class="tbtn dark" id="an-exp-e" type="button" title="最原始的数据：每一个点击、滚动、视频、表单事件一行">导出 Raw Events CSV</button>
 </div>
 </div>
 <div class="an-filters" id="an-filters"></div>
@@ -265,6 +267,18 @@ body{background:#F5F5F5}
   $('tab-leads').addEventListener('click', function () { tab('leads'); });
   $('tab-an').addEventListener('click', function () { tab('an'); });
   $('an-refresh').addEventListener('click', loadAn);
+  function exportAn(kind, btn) {
+    var qs = new URLSearchParams({ range: $('an-range').value, export: kind });
+    if (anSite) qs.set('site', anSite);
+    var old = btn.textContent; btn.textContent = '导出中…'; btn.disabled = true;
+    fetch('/api/analytics?' + qs.toString(), { headers: { 'x-crm-key': key }, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); var cd = r.headers.get('content-disposition') || ''; return r.blob().then(function (b) { return [b, (cd.match(/filename="([^"]+)"/) || [])[1]]; }); })
+      .then(function (x) { var a = document.createElement('a'); a.href = URL.createObjectURL(x[0]); a.download = x[1] || (kind + '.csv'); a.click(); })
+      .catch(function (e) { alert('导出失败：' + e.message); })
+      .then(function () { btn.textContent = old; btn.disabled = false; });
+  }
+  $('an-exp-s').addEventListener('click', function () { exportAn('sessions', $('an-exp-s')); });
+  $('an-exp-e').addEventListener('click', function () { exportAn('events', $('an-exp-e')); });
   $('an-range').addEventListener('change', loadAn);
   $('an-site').addEventListener('change', function () { anSite = $('an-site').value; anF = {}; loadAn(); });
 

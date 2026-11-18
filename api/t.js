@@ -16,7 +16,7 @@ const s = (v, n) => (typeof v === 'string' ? v.slice(0, n) : typeof v === 'numbe
 
 function cleanEvent(e) {
   if (!e || typeof e !== 'object' || typeof e.n !== 'string') return null;
-  const out = { n: e.n.slice(0, 40), t: Math.max(0, Math.min(+e.t || 0, 864e5)) };
+  const out = { n: e.n.slice(0, 40), t: Math.round(Math.max(0, Math.min(+e.t || 0, 864e5))) };
   for (const k of Object.keys(e).slice(0, 16)) {
     if (k === 'n' || k === 't') continue;
     const v = e[k];
