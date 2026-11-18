@@ -52,6 +52,43 @@ body{background:#F5F5F5}
 .msg{color:var(--red);font-weight:700;margin:0}
 .empty{background:#FFFFFF;border-radius:12px;padding:32px;text-align:center;color:var(--mute);grid-column:1/-1}
 @media (max-width:760px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.list{grid-template-columns:minmax(0,1fr)}}
+.tabs-top{display:flex;gap:4px;margin-top:16px;border-bottom:2px solid #DDDDDD}
+.tabs-top button{min-height:46px;padding:8px 18px;border:none;background:none;font-family:inherit;font-size:17px;font-weight:900;color:var(--mute);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs-top button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+.tsel{min-height:44px;padding:6px 10px;border:2px solid var(--ink);border-radius:8px;background:#FFFFFF;font-family:inherit;font-size:15px;font-weight:700}
+.adbox{background:#F5F5F5;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.6}
+.adbox b{color:var(--ink)}
+.adbox .id{color:var(--mute);font-family:Poppins,monospace;font-size:12px}
+.an-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.an-filters label{display:flex;flex-direction:column;gap:2px;font-size:12px;font-weight:700;color:var(--mute)}
+.an-filters select{min-height:40px;max-width:240px;padding:4px 8px;border:2px solid #CCCCCC;border-radius:8px;font-family:inherit;font-size:14px;background:#FFFFFF}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:#FFFFFF;border-radius:10px;padding:12px}
+.kpi div:first-child{font-size:13px;color:var(--mute);font-weight:700}
+.kpi div:nth-child(2){font-family:Poppins,sans-serif;font-size:26px;font-weight:800}
+.kpi.hl div:nth-child(2){color:var(--red)}
+.card-a{background:#FFFFFF;border-radius:12px;padding:16px;margin-bottom:12px}
+.card-a h2{margin:0 0 4px;font-size:18px;font-weight:900}
+.card-a .hint{margin:0 0 12px;font-size:13px;color:var(--mute)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.brow{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) 120px;gap:10px;align-items:center;padding:4px 0}
+.brow .lb{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .track{height:22px;background:#F1F1F1;border-radius:4px;position:relative}
+.brow .fill{height:100%;background:#111111;border-radius:0 4px 4px 0;min-width:2px}
+.brow .fill.red{background:#E11D1D}
+.brow .vl{font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.brow .vl small{color:var(--mute)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--mute);font-weight:700;border-bottom:2px solid #EEEEEE;padding:6px 8px;white-space:nowrap}
+.tbl td{border-bottom:1px solid #F1F1F1;padding:6px 8px;vertical-align:top}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl th.n{text-align:right}
+.tbl tr:hover td{background:#FAFAFA}
+.tscroll{overflow-x:auto}
+.good{color:#15803D;font-weight:700}
+.empty-a{background:#FFFFFF;border-radius:12px;padding:28px;color:var(--mute);line-height:1.8}
+.empty-a code{background:#F1F1F1;padding:2px 6px;border-radius:4px;font-size:13px;word-break:break-all}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}.brow{grid-template-columns:minmax(0,110px) minmax(0,1fr) 92px}}
 </style>
 </head>
 <body>
@@ -72,6 +109,11 @@ body{background:#F5F5F5}
 </form>
 
 <div id="app" hidden>
+<nav class="tabs-top" role="tablist">
+<button type="button" role="tab" id="tab-leads" aria-selected="true">预约名单</button>
+<button type="button" role="tab" id="tab-an" aria-selected="false">Analytics</button>
+</nav>
+<div id="pane-leads">
 <div class="bar">
 <h1>预约名单</h1>
 <div class="tools">
@@ -81,9 +123,24 @@ body{background:#F5F5F5}
 </div>
 </div>
 <div class="stats" id="stats"></div>
-<div class="filters" id="filters"><input type="search" id="q" placeholder="搜索名字 / 电话 / 行业"></div>
+<div class="filters" id="filters"><input type="search" id="q" placeholder="搜索名字 / 电话 / 行业 / 广告"></div>
 <p class="msg" id="app-msg"></p>
 <div class="list" id="list"></div>
+</div>
+
+<div id="pane-an" hidden>
+<div class="bar">
+<h1>Analytics</h1>
+<div class="tools">
+<select id="an-site" class="tsel" aria-label="网站"></select>
+<select id="an-range" class="tsel" aria-label="时间范围"><option value="today">今天</option><option value="yesterday">昨天</option><option value="7d" selected>最近 7 天</option><option value="30d">最近 30 天</option></select>
+<button class="tbtn" id="an-refresh" type="button">刷新</button>
+</div>
+</div>
+<div class="an-filters" id="an-filters"></div>
+<p class="msg" id="an-msg"></p>
+<div id="an-body"></div>
+</div>
 </div>
 </main>
 
@@ -137,7 +194,7 @@ body{background:#F5F5F5}
     var rows = leads.filter(function (l) {
       if (filter !== 'all' && l.status !== filter) return false;
       if (!q) return true;
-      return [l.name, l.phone, l.industry, l.industry_other, l.challenge].join(' ').toLowerCase().indexOf(q) !== -1;
+      var a = l.ad || {}; return [l.name, l.phone, l.industry, l.industry_other, l.challenge, a.campaign, a.adset, a.ad, a.ad_id].join(' ').toLowerCase().indexOf(q) !== -1;
     });
     var list = $('list'); list.innerHTML = '';
     if (!rows.length) { list.appendChild(el('div', 'empty', leads.length ? '没有符合的 lead' : '还没有预约。客户在预约页提交后会出现在这里。')); return; }
@@ -154,7 +211,19 @@ body{background:#F5F5F5}
       var r2 = el('div', 'row2'); r2.appendChild(el('b', '', '电话')); r2.appendChild(el('span', '', l.phone || '-')); c.appendChild(r2);
       var r3 = el('div', 'row2'); r3.appendChild(el('b', '', '行业')); r3.appendChild(el('span', '', industry(l))); c.appendChild(r3);
       if (l.challenge) { var r4 = el('div', 'row2'); r4.appendChild(el('b', '', 'CPL / 挑战')); r4.appendChild(el('span', '', l.challenge)); c.appendChild(r4); }
-      if (l.utm) { var r5 = el('div', 'meta', '来源：' + l.utm); c.appendChild(r5); }
+      var ad = l.ad || {};
+      if (ad.campaign || ad.adset || ad.ad || ad.ad_id || ad.source) {
+        var ab = el('div', 'adbox');
+        ab.appendChild(el('div', '', '来源：' + (ad.source || '-') + (ad.placement ? ' · ' + ad.placement : '')));
+        [['Campaign', ad.campaign, ad.campaign_id], ['Ad set', ad.adset, ad.adset_id], ['Ad', ad.ad, ad.ad_id]].forEach(function (x) {
+          if (!x[1] && !x[2]) return;
+          var row = el('div'); row.appendChild(el('b', '', x[0] + '：')); row.appendChild(el('span', '', x[1] || '-'));
+          if (x[2]) row.appendChild(el('span', 'id', '  ID ' + x[2]));
+          ab.appendChild(row);
+        });
+        c.appendChild(ab);
+      } else if (l.utm) { c.appendChild(el('div', 'meta', '来源：' + l.utm)); }
+      else { c.appendChild(el('div', 'meta', '来源：没有广告参数（直接打开 / 自然流量）')); }
       var notes = el('textarea'); notes.placeholder = '备注（例如：已打电话，周三再跟）'; notes.value = l.notes || ''; c.appendChild(notes);
       var acts = el('div', 'acts');
       var wa = el('a', 'wa-l', 'WhatsApp 他');
@@ -173,14 +242,174 @@ body{background:#F5F5F5}
   }
 
   function csv() {
-    var head = ['编号', '提交时间', '名字', '电话', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源'];
+    var head = ['编号', '提交时间', '名字', '电话', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源', 'Campaign', 'Campaign ID', 'Ad set', 'Ad set ID', 'Ad', 'Ad ID', 'Placement'];
     var esc = function (v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
     var lines = [head.map(esc).join(',')].concat(leads.map(function (l) {
-      return [l.id, fmt(l.created_at), l.name, l.phone, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, l.utm].map(esc).join(',');
+      var a = l.ad || {};
+      return [l.id, fmt(l.created_at), l.name, l.phone, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, a.source || l.utm || '', a.campaign, a.campaign_id, a.adset, a.adset_id, a.ad, a.ad_id, a.placement].map(esc).join(',');
     }));
     var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = 'adtomatic-leads-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+  }
+
+
+  // ================= Analytics =================
+  var anF = {}, anSite = '', anLoaded = false;
+  function tab(which) {
+    var an = which === 'an';
+    $('tab-leads').setAttribute('aria-selected', an ? 'false' : 'true'); $('tab-an').setAttribute('aria-selected', an ? 'true' : 'false');
+    $('pane-leads').hidden = an; $('pane-an').hidden = !an;
+    if (an && !anLoaded) loadAn();
+  }
+  $('tab-leads').addEventListener('click', function () { tab('leads'); });
+  $('tab-an').addEventListener('click', function () { tab('an'); });
+  $('an-refresh').addEventListener('click', loadAn);
+  $('an-range').addEventListener('change', loadAn);
+  $('an-site').addEventListener('change', function () { anSite = $('an-site').value; anF = {}; loadAn(); });
+
+  function num(n) { return (n || 0).toLocaleString('en-US'); }
+  function secs(s) { s = s || 0; return s >= 60 ? Math.floor(s / 60) + '分' + (s % 60) + '秒' : s + '秒'; }
+  function card(title, hint) { var c = el('div', 'card-a'); c.appendChild(el('h2', '', title)); if (hint) c.appendChild(el('p', 'hint', hint)); return c; }
+  function bars(rows, opt) {   // rows: [{label, value, max, text, red, tip}]
+    var wrap = el('div');
+    rows.forEach(function (r) {
+      var row = el('div', 'brow'); row.title = r.tip || (r.label + '：' + r.text);
+      var lb = el('div', 'lb', r.label); lb.title = r.label; row.appendChild(lb);
+      var tr = el('div', 'track'); var f = el('div', 'fill' + (r.red ? ' red' : '')); f.style.width = (r.max ? Math.max(0.5, r.value / r.max * 100) : 0) + '%'; tr.appendChild(f); row.appendChild(tr);
+      var vl = el('div', 'vl'); vl.textContent = r.text; row.appendChild(vl);
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+  function table(cols, rows) {   // cols: [label, fn, isNum]
+    var box = el('div', 'tscroll'), t = el('table', 'tbl'), thead = el('thead'), hr = el('tr');
+    cols.forEach(function (c) { var th = el('th', c[2] ? 'n' : '', c[0]); hr.appendChild(th); });
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb = el('tbody');
+    rows.forEach(function (r) { var tr = el('tr'); cols.forEach(function (c) { var v = c[1](r); var td = el('td', c[2] ? 'n' : ''); if (v instanceof Node) td.appendChild(v); else td.textContent = v == null ? '' : v; tr.appendChild(td); }); tb.appendChild(tr); });
+    t.appendChild(tb); box.appendChild(t); return box;
+  }
+  function none(text) { return el('p', 'hint', text || '这段时间还没有数据'); }
+
+  function loadAn() {
+    anLoaded = true;
+    var qs = new URLSearchParams({ range: $('an-range').value });
+    if (anSite) qs.set('site', anSite);
+    Object.keys(anF).forEach(function (k) { if (anF[k]) qs.set(k, anF[k]); });
+    $('an-msg').textContent = '计算中…（第一次看较长的时间范围会慢一点）';
+    fetch('/api/analytics?' + qs.toString(), { headers: { 'x-crm-key': key }, cache: 'no-store' })
+      .then(function (r) { if (r.status === 401) throw new Error('auth'); return r.json(); })
+      .then(function (j) { $('an-msg').textContent = j.ok ? '' : '载入失败：' + (j.error || ''); if (j.ok) renderAn(j); })
+      .catch(function (e) { $('an-msg').textContent = e.message === 'auth' ? '密码过期，请重新登入' : '载入失败：' + e.message; });
+  }
+
+  function renderAn(j) {
+    var sel = $('an-site'); sel.innerHTML = '';
+    (j.sites || []).forEach(function (x) { var o = el('option', '', x); o.value = x; if (x === j.site) o.selected = true; sel.appendChild(o); });
+    anSite = j.site;
+    var body = $('an-body'); body.innerHTML = '';
+    if (j.disabled) {
+      var e = el('div', 'empty-a');
+      e.innerHTML = '<b>Analytics 还没开启。</b><br>Vercel → Settings → Environment Variables 加 <code>ANALYTICS_ENABLED</code> = <code>1</code>，然后 Redeploy。<br>⚠️ 开启前请先升级 Vercel <b>Pro</b>：Hobby 的储存写入每月只有 2,000 次，超过会锁住储存 30 天（CRM 也会一起停）。';
+      body.appendChild(e); $('an-filters').innerHTML = ''; return;
+    }
+    // filters
+    var fbox = $('an-filters'); fbox.innerHTML = '';
+    [['source', '来源'], ['campaign', 'Campaign'], ['adset', 'Ad set'], ['ad', 'Ad'], ['dev', '设备']].forEach(function (x) {
+      var opts = (j.options && j.options[x[0]]) || []; if (!opts.length && !anF[x[0]]) return;
+      var lab = el('label', '', x[1]); var s2 = el('select'); var o0 = el('option', '', '全部'); o0.value = ''; s2.appendChild(o0);
+      opts.forEach(function (v) { var o = el('option', '', v); o.value = v; if (anF[x[0]] === v) o.selected = true; s2.appendChild(o); });
+      s2.addEventListener('change', function () { anF[x[0]] = s2.value; loadAn(); });
+      lab.appendChild(s2); fbox.appendChild(lab);
+    });
+
+    var T = j.totals;
+    if (!T.sessions) { body.appendChild(el('div', 'empty-a', j.from + ' 到 ' + j.to + ' 还没有访问数据。网站有人来之后，这里会自动出现。')); return; }
+
+    // KPIs
+    var k = el('div', 'kpis');
+    [['访问 (Sessions)', num(T.sessions)], ['访客', num(T.visitors)], [j.goal_label, num(T.goals), 1], ['转化率', T.cvr + '%', 1], ['平均停留', secs(T.avg_eng)], ['跳出率', T.bounce + '%']].forEach(function (x) {
+      var d = el('div', 'kpi' + (x[2] ? ' hl' : '')); d.appendChild(el('div', '', x[0])); d.appendChild(el('div', '', x[1])); k.appendChild(d);
+    });
+    body.appendChild(k);
+
+    // Funnel
+    var fc = card('转化漏斗', '每一步有多少个 session 做到，括号是跟上一步比。看哪一步掉最多，就先修那一步。');
+    var f0 = j.funnel.length ? j.funnel[0].sessions : 0;
+    fc.appendChild(bars(j.funnel.map(function (f, i) {
+      return { label: f.label, value: f.sessions, max: f0, red: i === j.funnel.length - 1, text: num(f.sessions) + '  ' + f.of_first + '%', tip: f.label + '：' + num(f.sessions) + ' 个 session，占第一步 ' + f.of_first + '%，上一步留下 ' + f.of_prev + '%' };
+    })));
+    fc.appendChild(table([['步骤', function (r) { return r.label; }], ['Sessions', function (r) { return num(r.sessions); }, 1], ['占第一步', function (r) { return r.of_first + '%'; }, 1], ['上一步留下', function (r) { return r.of_prev + '%'; }, 1]], j.funnel));
+    body.appendChild(fc);
+
+    // Ads
+    var ac = card('广告表现（按 Ad）', '要在 Meta 广告的「网址参数」加上 utm 和 ID，这里才分得出是哪一个 Ad。设定方法见 README。');
+    if (j.ads.length) {
+      var amax = Math.max.apply(null, j.ads.map(function (a) { return a.cvr; }).concat([0]));
+      ac.appendChild(table([
+        ['Campaign', function (r) { return r.campaign; }], ['Ad set', function (r) { return r.adset; }], ['Ad', function (r) { return r.ad + (r.ad_id ? ' (' + r.ad_id + ')' : ''); }],
+        ['Sessions', function (r) { return num(r.sessions); }, 1], ['看 VSL', function (r) { return num(r.vsl); }, 1], ['开始填表', function (r) { return num(r.form_start); }, 1],
+        [j.goal_label, function (r) { return num(r.goals); }, 1], ['转化率', function (r) { var s2 = el('span', r.cvr === amax && r.goals ? 'good' : '', r.cvr + '%'); return s2; }, 1]
+      ], j.ads));
+    } else ac.appendChild(none('这段时间没有带广告参数的访问。'));
+    body.appendChild(ac);
+
+    // Sources / campaigns / ad sets / devices
+    var g2 = el('div', 'grid2');
+    function grp(title, rows) {
+      var c = card(title); if (!rows.length) { c.appendChild(none()); return c; }
+      c.appendChild(table([['', function (r) { return r.key; }], ['Sessions', function (r) { return num(r.sessions); }, 1], [j.goal_label, function (r) { return num(r.goals); }, 1], ['转化率', function (r) { return r.cvr + '%'; }, 1], ['平均停留', function (r) { return secs(r.avg_eng); }, 1]], rows));
+      return c;
+    }
+    g2.appendChild(grp('来源', j.by_source)); g2.appendChild(grp('Campaign', j.by_campaign));
+    g2.appendChild(grp('Ad set', j.by_adset)); g2.appendChild(grp('设备', j.by_device));
+    body.appendChild(g2);
+
+    // Daily
+    var dc = card('每日趋势');
+    var dmax = Math.max.apply(null, j.daily.map(function (d) { return d.sessions; }).concat([1]));
+    dc.appendChild(bars(j.daily.map(function (d) { return { label: d.date.slice(5), value: d.sessions, max: dmax, text: num(d.sessions) + ' · ' + d.goals + ' 转化', tip: d.date + '：' + d.sessions + ' sessions，' + d.goals + ' 个' + j.goal_label }; })));
+    body.appendChild(dc);
+
+    // Scroll + video
+    var g3 = el('div', 'grid2');
+    var sc = card('滚动深度（' + j.main_page + '）', '多少人滑到页面的 25% / 50% / 75% / 90% / 底部');
+    sc.appendChild(bars(j.scroll.map(function (r) { return { label: '滑到 ' + r.depth + '%', value: r.pct, max: 100, text: r.pct + '%  (' + num(r.sessions) + ')' }; })));
+    g3.appendChild(sc);
+    var vc = card('视频观看', '按播放的人里面，看到 25% / 50% / 75% / 看完的比例');
+    if (j.videos.length) j.videos.forEach(function (v) {
+      vc.appendChild(el('p', 'hint', v.video + ' · ' + num(v.play) + ' 次播放'));
+      vc.appendChild(bars([['播放', v.play], ['25%', v.p25], ['50%', v.p50], ['75%', v.p75], ['看完', v.p100]].map(function (x) { return { label: x[0], value: x[1], max: v.play, text: num(x[1]) + '  ' + (v.play ? Math.round(x[1] / v.play * 100) : 0) + '%' }; })));
+    }); else vc.appendChild(none('还没有人播放视频'));
+    g3.appendChild(vc);
+    body.appendChild(g3);
+
+    // Sections
+    var secC = card('每一段内容：看到的人 + 停留时间', '看到 = 那一段有 35% 出现在屏幕上。由上往下看，就知道人在哪一段开始流失、在哪一段停最久。');
+    if (j.sections.length) secC.appendChild(table([['页面', function (r) { return r.page; }], ['段落', function (r) { return r.section; }], ['看到的 Sessions', function (r) { return num(r.sessions); }, 1], ['占该页访问', function (r) { return r.pct + '%'; }, 1], ['平均停留', function (r) { return secs(r.avg_secs); }, 1]], j.sections));
+    else secC.appendChild(none());
+    body.appendChild(secC);
+
+    // Clicks
+    var cc = card('他们点了什么', '每个按钮 / 链接 / 图片被多少个 session 点过，在哪一段。占比 = 该页访问里面有多少 % 的人点。');
+    if (j.clicks.length) cc.appendChild(table([['页面', function (r) { return r.page; }], ['段落', function (r) { return r.section; }], ['点了什么', function (r) { return r.label; }], ['去哪里', function (r) { return r.to; }], ['Sessions', function (r) { return num(r.sessions); }, 1], ['总点击', function (r) { return num(r.clicks); }, 1], ['占比', function (r) { return r.pct + '%'; }, 1]], j.clicks));
+    else cc.appendChild(none());
+    body.appendChild(cc);
+
+    // Form fields
+    var fc2 = card('表单：每一格的使用情况', '「最后停在这里」= 填到这一格就离开、没有提交的人数。数字高的那一格，就是最劝退的问题。');
+    if (j.fields.length) fc2.appendChild(table([['表单 | 栏位', function (r) { return r.field; }], ['点进去', function (r) { return num(r.focus); }, 1], ['有填', function (r) { return num(r.done); }, 1], ['最后停在这里', function (r) { return num(r.last_drop); }, 1]], j.fields));
+    else fc2.appendChild(none('还没有人碰表单'));
+    body.appendChild(fc2);
+
+    // Pages + events + entry
+    var g4 = el('div', 'grid2');
+    var pc = card('页面'); pc.appendChild(j.pages.length ? table([['页面', function (r) { return r.path; }], ['Sessions', function (r) { return num(r.sessions); }, 1], ['占比', function (r) { return r.pct + '%'; }, 1]], j.pages) : none()); g4.appendChild(pc);
+    var ec = card('重要动作（自定义事件）', 'booking_submit = 提交预约、whatsapp_confirm = 按 WhatsApp 确认、calendar_add = 加 Calendar、hs_form_submit = HubSpot 表单提交');
+    ec.appendChild(j.events.length ? table([['事件', function (r) { return r.name; }], ['Sessions', function (r) { return num(r.sessions); }, 1]], j.events) : none()); g4.appendChild(ec);
+    body.appendChild(g4);
+    body.appendChild(el('p', 'hint', '时间范围：' + j.from + ' 到 ' + j.to + '（马来西亚时间）· 网站：' + j.site));
   }
 
   $('login').addEventListener('submit', function (e) {

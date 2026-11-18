@@ -7,6 +7,18 @@ import crypto from 'node:crypto';
 import { sha256, str, normPhone, sendCapi } from './_lib.js';
 import { saveLead, storeReady } from './_store.js';
 
+// Which Meta campaign / ad set / ad the lead came from (from the ad's URL parameters)
+function cleanAd(a) {
+  if (!a || typeof a !== 'object') return {};
+  const out = {};
+  for (const k of ['source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'landing']) {
+    const v = str(String(a[k] ?? ''), 150);
+    if (v && v !== 'undefined' && !/^\{\{/.test(v)) out[k] = v;
+  }
+  if (a.fbclid) out.fbclid = 1;
+  return out;
+}
+
 export function buildLead(body, now = Date.now()) {
   const id = new Date(now).toISOString().slice(2, 10).replace(/-/g, '') + '-' + crypto.randomBytes(3).toString('hex');
   return {
@@ -21,7 +33,9 @@ export function buildLead(body, now = Date.now()) {
     time: str(body.time, 20),
     custom_time: str(body.custom_time, 200),
     start: str(body.start, 40),
-    utm: str(body.utm, 300),
+    ad: cleanAd(body.ad),
+    vid: str(body.ids && body.ids.vid, 16),
+    sid: str(body.ids && body.ids.sid, 16),
     event_id: str(body.event_id, 64),
     status: 'new',
     notes: ''
@@ -50,7 +64,7 @@ export function buildEvent(lead, body, headers, now = Date.now()) {
     action_source: 'website',
     event_source_url: str(body.source_url, 300) || undefined,
     user_data,
-    custom_data: { content_name: 'Free Zoom', content_category: lead.industry_other || lead.industry || undefined }
+    custom_data: { content_name: 'Free Zoom', content_category: lead.industry_other || lead.industry || undefined, ad_id: lead.ad.ad_id || undefined }
   };
 }
 

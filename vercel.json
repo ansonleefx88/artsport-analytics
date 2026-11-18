@@ -1,8 +1,12 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "functions": {
+    "api/analytics.js": { "maxDuration": 60 }
+  },
   "headers": [
     { "source": "/crm", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }, { "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/api/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Cache-Control", "value": "no-store" }] }
+    { "source": "/api/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/js/t.js", "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }, { "key": "Cache-Control", "value": "public, max-age=3600" }] }
   ]
 }

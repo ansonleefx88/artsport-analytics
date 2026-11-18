@@ -99,3 +99,51 @@ CRM 密码只给需要跟进的同事。客户资料是个人资料，不要截�
 - 名额数字在 3 个地方：`index.html`（零风险段、底部按钮小字）和 `book.html`，接满就更新，保持真实
 - 时段被订走：在 `js/config.js` 调整 `timeSlots` / `closedWeekdays`
 - Show / No-show / 成交：之后可以再加 Attended、Purchase 事件回传给 Meta，算真正的 Cost per Show / CAC
+
+
+## Analytics（CRM 里的第二个 tab）
+
+自己的追踪，不用 Google Analytics。每一页加载 `js/t.js`，资料存在同一个 Vercel Blob（私密），在 `/crm` → **Analytics** 看。
+
+看得到：访问、访客、转化率、平均停留、跳出率、**转化漏斗**、**每个 Ad / Ad set / Campaign 的转化率**、来源、设备、每日趋势、滚动深度、VSL 看到几 %、**每一段内容有多少人看到 + 停多久**、**每个按钮 / 链接被谁点**、**表单每一格在哪里放弃**、自定义事件。上面可以按来源 / Campaign / Ad set / Ad / 设备筛选。
+
+不会记录客户打了什么字，只记录点了哪一格。
+
+### 开启（一定要先看这一段）
+
+⚠️ Vercel **Hobby** 的 Blob 每月只有 **2,000 次写入**。超过的话整个储存会被锁 **30 天**，CRM 也会一起停。Analytics 每个访问大约写 1–3 次，所以：
+
+1. 先把 Vercel 升级到 **Pro**（写入每 100 万次约 USD 5）
+2. Settings → Environment Variables 加 `ANALYTICS_ENABLED` = `1`
+3. （可选）`ANALYTICS_SITES` = `adtomatic,client-a,client-b`：只接受这些网站，第一个是 CRM 预设显示的
+4. Redeploy
+
+没开 `ANALYTICS_ENABLED` 之前，追踪代码不会写任何资料，CRM 预约照常运作。
+
+### Meta 广告网址参数（知道 lead 是哪一个 Ad 来的）
+
+在每个广告（或在 Ad set 层用 bulk edit）→ **Tracking → URL parameters** 贴上：
+
+```
+utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}
+```
+
+结果：
+- **CRM 每个 lead** 会显示 Campaign / Ad set / Ad 名字和 ID，导出 CSV 也有
+- **Analytics** 的「广告表现」表可以比较每个 Ad 的 Sessions → 看 VSL → 开始填表 → 提交预约 → 转化率
+
+Meta CAPI 本身不会回传 Ad ID 给我们；Ad ID 是靠这串网址参数带进来的，客户点广告进来后会记住 30 天。
+
+### 用在 HubSpot 客户的页面
+
+HubSpot → Settings → Content → Pages → **Site header HTML**（或单一页面的 Advanced → Head HTML），贴：
+
+```html
+<script async src="https://你的网址/js/t.js" data-site="client-a"></script>
+```
+
+- `data-site` 每个客户一个名字（小写英文、数字、-），在 CRM 的 Analytics 右上角切换
+- HubSpot 表单提交会自动记成 `hs_form_submit`，漏斗 = 访问 → 有互动 → 开始填表 → 提交表单
+- 想给按钮 / 段落取名字：按钮加 `data-track="名字"`，段落加 `data-section="名字"`
+- 自己的代码要记录重要动作：`window.adtTrack('purchase', { value: 1000 })`
+- 客户网站的访客资料也是个人资料，记得在客户的 Privacy Policy 提到网站分析

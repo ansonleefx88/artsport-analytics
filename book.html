@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/site.css">
 <script src="js/config.js"></script>
 <script src="js/pixel.js"></script>
+<script async src="js/t.js" data-site="adtomatic"></script>
 <style>
 .card{border:3px solid var(--ink);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;margin-top:20px}
 .card h2{margin:0;font-size:20px;font-weight:900}
@@ -51,7 +52,7 @@
 <p>大约 1 分钟 · 本月剩余 <b class="red">2</b> 个名额</p>
 </div>
 
-<form id="book" novalidate>
+<form id="book" data-section="预约表单" novalidate>
 <section class="card">
 <h2><span>第 1 步</span>　告诉我们你的生意</h2>
 <label class="field" id="f-name">你的名字<input type="text" id="name" autocomplete="name" placeholder="例如：Jason Tan"></label>
@@ -184,8 +185,16 @@ fbq('track', 'ViewContent', { content_name: 'Booking page' });
     // Tracking: browser Schedule + server CAPI Schedule with the same event id
     var eid = 'bk_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     fbq('track', 'Schedule', { content_name: 'Free Zoom' }, { eventID: eid });
-    var qs = new URLSearchParams(location.search), fbclid = qs.get('fbclid');
-    var utm = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].map(function (k) { return qs.get(k) ? k.slice(4) + '=' + qs.get(k) : ''; }).filter(Boolean).join('&');
+    // Ad attribution: which campaign / ad set / ad brought this lead (saved by js/t.js on the landing page)
+    var attr = {};
+    try { attr = (window.adtAttribution && window.adtAttribution()) || JSON.parse(localStorage.getItem('adt_attr') || '{}') || {}; } catch (err) {}
+    var qs = new URLSearchParams(location.search);
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid'].forEach(function (k) {
+      var key = k.indexOf('utm_') === 0 ? k.slice(4) : k;
+      if (qs.get(k) && !/^\{\{/.test(qs.get(k))) attr[key] = qs.get(k);
+    });
+    var fbclid = attr.fbclid && attr.fbclid !== 1 ? attr.fbclid : '';
+    if (window.adtTrack) adtTrack('booking_submit', { industry: industry, custom_time: custom ? 1 : 0 });
 
     // Hand the booking to the thank-you page (WhatsApp confirm message + calendar)
     var info = { name: v.name, phone: v.phone, industry: industry, challenge: v.challenge, when: whenText, start: start, custom: custom };
@@ -200,7 +209,9 @@ fbq('track', 'ViewContent', { content_name: 'Booking page' });
     var payload = {
       event_id: eid, name: v.name, phone: v.phone, industry: v.industry, industry_other: v.industry_other,
       challenge: v.challenge, date_label: custom ? '' : st.dateLabel, time: custom ? '' : st.time,
-      custom_time: custom ? v.custom_time : '', start: start, utm: utm, website: $('website').value,
+      custom_time: custom ? v.custom_time : '', start: start, website: $('website').value,
+      ad: { source: attr.source, medium: attr.medium, campaign: attr.campaign, adset: attr.term, ad: attr.content, campaign_id: attr.campaign_id, adset_id: attr.adset_id, ad_id: attr.ad_id, placement: attr.placement, landing: attr.landing, fbclid: fbclid ? 1 : 0 },
+      ids: window.adtIds ? adtIds() : null,
       fbp: getCookie('_fbp'), fbc: getCookie('_fbc') || (fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : ''),
       source_url: location.origin + '/book'
     };
