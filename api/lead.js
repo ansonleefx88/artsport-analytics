@@ -13,7 +13,7 @@ import { storageMode } from './_storage.js';
 function cleanAd(a) {
   if (!a || typeof a !== 'object') return {};
   const out = {};
-  for (const k of ['source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'landing']) {
+  for (const k of ['ad_account', 'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'landing']) {
     const v = str(String(a[k] ?? ''), 150);
     if (v && v !== 'undefined' && !/^\{\{/.test(v)) out[k] = v;
   }

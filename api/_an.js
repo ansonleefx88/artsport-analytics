@@ -293,7 +293,7 @@ const myIso = (ts) => new Date(ts + MY).toISOString().replace('T', ' ').slice(0,
 export async function exportEvents(site, from, to) {
   const head = ['time_my', 'session_id', 'visitor_id', 'pageview_id', 'page', 'event', 'ms_on_page', 'label', 'section', 'link_to', 'y_pct',
     'scroll_pct', 'video', 'video_progress', 'form', 'field', 'engaged_s', 'max_scroll', 'section_dwell_json', 'props_json',
-    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'screen_w', 'country'];
+    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'screen_w', 'country', 'ad_account'];
   const rows = [head];
   for (const d of datesBetween(from, to)) {
     const blobs = await listAll(`an/${site}/raw/${d}/`);
@@ -304,7 +304,7 @@ export async function exportEvents(site, from, to) {
         const props = {}; for (const k in e) if (k.startsWith('p_')) props[k.slice(2)] = e[k];
         rows.push([myIso(r.ts + e.t), r.sid, r.vid, r.pv, normPath(r.page.path), e.n, Math.round(e.t), e.l, e.s, e.h, e.y,
           e.n === 'scroll' ? e.d : '', e.v, e.a, e.f, e.fld, e.e, e.mx, e.dw ? JSON.stringify(e.dw) : '', Object.keys(props).length ? JSON.stringify(props) : '',
-          s.source, s.medium, s.campaign, s.term, s.content, s.campaign_id, s.adset_id, s.ad_id, s.placement, s.fbclid ? 1 : '', r.page.ref, r.page.dev, r.page.w, r.cc]);
+          s.source, s.medium, s.campaign, s.term, s.content, s.campaign_id, s.adset_id, s.ad_id, s.placement, s.fbclid ? 1 : '', r.page.ref, r.page.dev, r.page.w, r.cc, s.ad_account]);
       }
     }
   }
@@ -318,7 +318,7 @@ export function exportSessions(all, site) {
   const head = ['session_id', 'visitor_id', 'start_my', 'date', 'hour', 'weekday', 'entry_page', 'pages', 'pageviews', 'engaged_s',
     'max_scroll_main', 'clicks', 'sections_seen', 'video_max_pct', 'form_started', 'fields_touched', 'fields_filled', 'last_field',
     'converted', 'whatsapp_confirm', 'calendar_add', 'events_json',
-    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'country'];
+    'source', 'medium', 'campaign', 'adset', 'ad', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid', 'referrer', 'device', 'country', 'ad_account'];
   const rows = [head];
   const main = cfg.mainPage || '/';
   for (const s of all.sort((a, b) => a.ts - b.ts)) {
@@ -327,7 +327,7 @@ export function exportSessions(all, site) {
       Object.keys(s.pages).join(' > '), Object.values(s.pages).reduce((x, y) => x + y, 0), Object.values(s.pvEng).reduce((x, y) => x + y, 0),
       s.scr[main] || 0, s.n.click || 0, Object.keys(s.sec).length, Math.max(0, ...Object.values(s.vid_)), s.n.form_start ? 1 : 0,
       Object.keys(s.fld).length, Object.keys(s.fdone).length, s.lastf, isGoal(s) ? 1 : 0, s.n.whatsapp_confirm ? 1 : 0, s.n.calendar_add ? 1 : 0, JSON.stringify(s.n),
-      src.source, src.medium, src.campaign, src.term, src.content, src.campaign_id, src.adset_id, src.ad_id, src.placement, src.fbclid ? 1 : '', s.ref, s.dev, s.cc]);
+      src.source, src.medium, src.campaign, src.term, src.content, src.campaign_id, src.adset_id, src.ad_id, src.placement, src.fbclid ? 1 : '', s.ref, s.dev, s.cc, src.ad_account]);
   }
   return CSV(rows);
 }

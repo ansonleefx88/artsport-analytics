@@ -229,7 +229,7 @@ body{background:#F5F5F5}
       var ad = l.ad || {};
       if (ad.campaign || ad.adset || ad.ad || ad.ad_id || ad.source) {
         var ab = el('div', 'adbox');
-        ab.appendChild(el('div', '', '来源：' + (ad.source || '-') + (ad.placement ? ' · ' + ad.placement : '')));
+        ab.appendChild(el('div', '', '来源：' + (ad.source || '-') + (ad.placement ? ' · ' + ad.placement : '') + (ad.ad_account ? ' · Ad account ' + ad.ad_account : '')));
         [['Campaign', ad.campaign, ad.campaign_id], ['Ad set', ad.adset, ad.adset_id], ['Ad', ad.ad, ad.ad_id]].forEach(function (x) {
           if (!x[1] && !x[2]) return;
           var row = el('div'); row.appendChild(el('b', '', x[0] + '：')); row.appendChild(el('span', '', x[1] || '-'));
@@ -257,11 +257,11 @@ body{background:#F5F5F5}
   }
 
   function csv() {
-    var head = ['编号', '提交时间', '网站', '名字', '电话', 'Email', '公司', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源', 'Campaign', 'Campaign ID', 'Ad set', 'Ad set ID', 'Ad', 'Ad ID', 'Placement', '其他栏位', '提交页面'];
+    var head = ['编号', '提交时间', '网站', '名字', '电话', 'Email', '公司', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源', 'Campaign', 'Campaign ID', 'Ad set', 'Ad set ID', 'Ad', 'Ad ID', 'Placement', 'Ad account', '其他栏位', '提交页面'];
     var esc = function (v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
     var lines = [head.map(esc).join(',')].concat(leads.map(function (l) {
       var a = l.ad || {};
-      return [l.id, fmt(l.created_at), l.site || 'adtomatic', l.name, l.phone, l.email, l.company, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, a.source || l.utm || '', a.campaign, a.campaign_id, a.adset, a.adset_id, a.ad, a.ad_id, a.placement, l.extra ? JSON.stringify(l.extra) : '', l.page].map(esc).join(',');
+      return [l.id, fmt(l.created_at), l.site || 'adtomatic', l.name, l.phone, l.email, l.company, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, a.source || l.utm || '', a.campaign, a.campaign_id, a.adset, a.adset_id, a.ad, a.ad_id, a.placement, a.ad_account, l.extra ? JSON.stringify(l.extra) : '', l.page].map(esc).join(',');
     }));
     var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);

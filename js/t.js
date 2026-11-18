@@ -36,7 +36,7 @@
   // Remembered for the session (analytics) and 30 days (lead attribution, last touch).
   var q = new URLSearchParams(location.search), src = {};
   ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(function (k) { if (q.get(k)) src[k.slice(4)] = q.get(k).slice(0, 120); });
-  ['campaign_id', 'adset_id', 'ad_id', 'placement', 'site_source'].forEach(function (k) { if (q.get(k) && !/^\{\{/.test(q.get(k))) src[k] = q.get(k).slice(0, 60); });
+  ['ad_account', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'site_source'].forEach(function (k) { if (q.get(k) && !/^\{\{/.test(q.get(k))) src[k] = q.get(k).slice(0, 60); });
   if (q.get('fbclid')) src.fbclid = 1;
   if (q.get('gclid')) src.gclid = 1;
   if (Object.keys(src).length) {
@@ -171,7 +171,7 @@
       site: SITE, event_id: eid, event_name: ev,
       name: data.name || '', phone: data.phone || '', email: data.email || '', company: data.company || '',
       industry: data.industry || '', challenge: data.challenge || data.message || '', extra: data.extra || null,
-      ad: { source: a.source, medium: a.medium, campaign: a.campaign, adset: a.term, ad: a.content, campaign_id: a.campaign_id, adset_id: a.adset_id, ad_id: a.ad_id, placement: a.placement, landing: a.landing, fbclid: a.fbclid ? 1 : 0 },
+      ad: { ad_account: a.ad_account, source: a.source, medium: a.medium, campaign: a.campaign, adset: a.term, ad: a.content, campaign_id: a.campaign_id, adset_id: a.adset_id, ad_id: a.ad_id, placement: a.placement, landing: a.landing, fbclid: a.fbclid ? 1 : 0 },
       ids: { vid: vid, sid: sid }, fbp: cookie('_fbp'), fbc: cookie('_fbc') || (fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : ''),
       source_url: location.origin + location.pathname
     });

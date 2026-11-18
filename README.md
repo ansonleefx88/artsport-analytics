@@ -177,7 +177,7 @@ CRM 密码只给需要跟进的同事。客户资料是个人资料，不要截�
 在每个广告（或在 Ad set 层用 bulk edit）→ **Tracking → URL parameters** 贴上：
 
 ```
-utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}
+utm_source=meta&utm_medium=paid&utm_campaign={{campaign.name}}&utm_term={{adset.name}}&utm_content={{ad.name}}&ad_account=act_XXXXXXXXX&campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&placement={{placement}}
 ```
 
 结果：
@@ -188,7 +188,7 @@ Meta CAPI 本身不会回传 Ad ID 给我们；Ad ID 是靠这串网址参数带
 
 ### 用在 HubSpot 客户的页面
 
-HubSpot → Settings → Content → Pages → **Site header HTML**（或单一页面的 Advanced → Head HTML），贴：
+HubSpot → Settings → Website（或 Content）→ Pages → Templates → **Site header HTML**（或单一页面的 Advanced → Head HTML），贴：
 
 ```html
 <script async src="https://你的domain/js/t.js" data-site="client-a"></script>
@@ -201,3 +201,5 @@ HubSpot → Settings → Content → Pages → **Site header HTML**（或单一�
 - 想给按钮 / 段落取名字：按钮加 `data-track="名字"`，段落加 `data-section="名字"`
 - 自己的代码要记录重要动作：`window.adtTrack('purchase', { value: 1000 })`
 - 客户网站的访客资料也是个人资料，记得在客户的 Privacy Policy 提到网站分析
+
+客户 landing page 的完整部署手册：[`docs/CLIENT-DEPLOY.md`](docs/CLIENT-DEPLOY.md)

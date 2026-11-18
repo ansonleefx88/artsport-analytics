@@ -48,7 +48,7 @@ export async function POST(request) {
 
   const p = b.page || {};
   const src = {};
-  if (p.src && typeof p.src === 'object') for (const k of ['source', 'medium', 'campaign', 'content', 'term', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'site_source', 'fbclid', 'gclid']) {
+  if (p.src && typeof p.src === 'object') for (const k of ['source', 'medium', 'campaign', 'content', 'term', 'ad_account', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'site_source', 'fbclid', 'gclid']) {
     if (p.src[k] !== undefined) src[k] = s(String(p.src[k]), 120);
   }
   const rec = {

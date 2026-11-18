@@ -189,7 +189,7 @@ fbq('track', 'ViewContent', { content_name: 'Booking page' });
     var attr = {};
     try { attr = (window.adtAttribution && window.adtAttribution()) || JSON.parse(localStorage.getItem('adt_attr') || '{}') || {}; } catch (err) {}
     var qs = new URLSearchParams(location.search);
-    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid'].forEach(function (k) {
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ad_account', 'campaign_id', 'adset_id', 'ad_id', 'placement', 'fbclid'].forEach(function (k) {
       var key = k.indexOf('utm_') === 0 ? k.slice(4) : k;
       if (qs.get(k) && !/^\{\{/.test(qs.get(k))) attr[key] = qs.get(k);
     });
@@ -210,7 +210,7 @@ fbq('track', 'ViewContent', { content_name: 'Booking page' });
       event_id: eid, name: v.name, phone: v.phone, industry: v.industry, industry_other: v.industry_other,
       challenge: v.challenge, date_label: custom ? '' : st.dateLabel, time: custom ? '' : st.time,
       custom_time: custom ? v.custom_time : '', start: start, website: $('website').value,
-      ad: { source: attr.source, medium: attr.medium, campaign: attr.campaign, adset: attr.term, ad: attr.content, campaign_id: attr.campaign_id, adset_id: attr.adset_id, ad_id: attr.ad_id, placement: attr.placement, landing: attr.landing, fbclid: fbclid ? 1 : 0 },
+      ad: { ad_account: attr.ad_account, source: attr.source, medium: attr.medium, campaign: attr.campaign, adset: attr.term, ad: attr.content, campaign_id: attr.campaign_id, adset_id: attr.adset_id, ad_id: attr.ad_id, placement: attr.placement, landing: attr.landing, fbclid: fbclid ? 1 : 0 },
       ids: window.adtIds ? adtIds() : null,
       fbp: getCookie('_fbp'), fbc: getCookie('_fbc') || (fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : ''),
       source_url: location.origin + '/book'
