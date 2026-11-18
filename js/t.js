@@ -5,6 +5,9 @@
  * Custom events from your own code:  window.adtTrack('booking_submit', { industry: 'Property' })
  * Name things for the report:  data-track="底部 CTA" on a button/link,  data-section="Value Stack" on a section.
  * Never records what people type — only which fields they touched.
+ * Leads into our CRM (+ Meta Pixel/CAPI event, + which ad they came from):
+ *   window.adtLead({ name, phone, email, company, industry, challenge, extra: {...}, event_name: 'Lead' })
+ * HubSpot forms send leads automatically when the script tag has  data-hubspot-leads="1"
  */
 (function () {
   if (window.__adtT) return; window.__adtT = 1;
@@ -12,6 +15,9 @@
   var me = d.currentScript || d.querySelector('script[src*="/js/t.js"]');
   var SITE = (me && me.getAttribute('data-site')) || 'adtomatic';
   var EP = (me && me.getAttribute('data-endpoint')) || (me && me.src ? new URL(me.src, location.href).origin + '/api/t' : '/api/t');
+  var LEAD_EP = EP.replace(/\/api\/t$/, '/api/lead');
+  var HS_LEADS = me && me.getAttribute('data-hubspot-leads') === '1';
+  var LEAD_EVENT = (me && me.getAttribute('data-lead-event')) || 'Lead';
   if (/bot|crawl|spider|facebookexternalhit|headless|lighthouse/i.test(nav.userAgent)) { w.adtTrack = function () {}; return; }
   if (location.protocol === 'file:') { w.adtTrack = function () {}; return; }   // local preview: don't send
 
@@ -152,15 +158,59 @@
   }, true);
   d.addEventListener('submit', function (e) { push('form_submit', { f: fform(e.target) }); flush(); }, true);
 
+  // ---- leads: save into our CRM (+ Meta event with the same id the server sends) ----
+  function cookie(n) { var m = d.cookie.match('(?:^|; )' + n + '=([^;]*)'); return m ? decodeURIComponent(m[1]) : ''; }
+  w.adtLead = function (data) {
+    data = data || {};
+    var a = w.adtAttribution(), eid = 'bk_' + Date.now().toString(36) + rid(6);
+    var ev = data.event_name || LEAD_EVENT;
+    try { if (w.fbq) w.fbq('track', ev, { content_name: SITE }, { eventID: eid }); } catch (x) {}
+    push('lead_submit', { p_event: ev }); flush();
+    var fbclid = a.fbclid && a.fbclid !== 1 ? a.fbclid : '';
+    var body = JSON.stringify({
+      site: SITE, event_id: eid, event_name: ev,
+      name: data.name || '', phone: data.phone || '', email: data.email || '', company: data.company || '',
+      industry: data.industry || '', challenge: data.challenge || data.message || '', extra: data.extra || null,
+      ad: { source: a.source, medium: a.medium, campaign: a.campaign, adset: a.term, ad: a.content, campaign_id: a.campaign_id, adset_id: a.adset_id, ad_id: a.ad_id, placement: a.placement, landing: a.landing, fbclid: a.fbclid ? 1 : 0 },
+      ids: { vid: vid, sid: sid }, fbp: cookie('_fbp'), fbc: cookie('_fbc') || (fbclid ? 'fb.1.' + Date.now() + '.' + fbclid : ''),
+      source_url: location.origin + location.pathname
+    });
+    try {
+      return fetch(LEAD_EP, { method: 'POST', body: body, keepalive: true, headers: { 'content-type': 'text/plain' } })
+        .then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+    } catch (x) { return Promise.resolve({ ok: false }); }
+  };
+
+  // HubSpot form values -> lead
+  function hsToLead(list) {
+    var v = {}, extra = {};
+    (list || []).forEach(function (f) { if (f && f.name) v[String(f.name).toLowerCase().replace(/^0-\d+\//, '')] = Array.isArray(f.value) ? f.value.join(', ') : f.value; });
+    var used = { firstname: 1, lastname: 1, phone: 1, mobilephone: 1, email: 1, company: 1, industry: 1, message: 1, hs_context: 1 };
+    Object.keys(v).forEach(function (k) { if (!used[k] && v[k] !== '' && v[k] != null) extra[k] = v[k]; });
+    return { name: [v.firstname, v.lastname].filter(Boolean).join(' '), phone: v.mobilephone || v.phone || '', email: v.email || '', company: v.company || '', industry: v.industry || '', challenge: v.message || '', extra: extra };
+  }
+  var hsPending = null;
   // HubSpot forms (client sites)
   w.addEventListener('message', function (e) {
     var m = e.data;
     if (m && m.type === 'hsFormCallback') {
-      if (m.eventName === 'onFormSubmitted') { push('hs_form_submit', { f: String(m.id || '').slice(0, 40) }); flush(); }
+      if (m.eventName === 'onFormSubmit' && Array.isArray(m.data)) hsPending = hsToLead(m.data);   // legacy forms: values arrive here
+      if (m.eventName === 'onFormSubmitted') {
+        push('hs_form_submit', { f: String(m.id || '').slice(0, 40) }); flush();
+        if (HS_LEADS) { var l = hsPending || (m.data && m.data.submissionValues ? hsToLead(Object.keys(m.data.submissionValues).map(function (k) { return { name: k, value: m.data.submissionValues[k] }; })) : null); if (l) w.adtLead(l); hsPending = null; }
+      }
       else if (m.eventName === 'onFormReady') push('hs_form_ready', { f: String(m.id || '').slice(0, 40) });
     }
   });
-  w.addEventListener('hs-form-event:on-submission:success', function () { push('hs_form_submit', {}); flush(); });
+  // New HubSpot forms (2024+ editor)
+  w.addEventListener('hs-form-event:on-submission:success', function (e) {
+    push('hs_form_submit', {}); flush();
+    if (!HS_LEADS) return;
+    try {
+      var form = w.HubSpotFormsV4 && w.HubSpotFormsV4.getFormFromEvent(e);
+      if (form && form.getFormFieldValues) form.getFormFieldValues().then(function (vals) { w.adtLead(hsToLead(vals)); });
+    } catch (x) {}
+  });
 
   // ---- engaged time + send on leave ----
   var active = 0, lastAct = Date.now(), visible = !d.hidden;

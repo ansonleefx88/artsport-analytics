@@ -1,6 +1,7 @@
-// Booking form submit (book.html):
-//   1. saves the lead into our own CRM (crm.html)
-//   2. sends a Meta Conversions API "Schedule" event (same event_id as the browser Pixel)
+// Lead / booking submit — from our book.html, or from any client page via window.adtLead() in js/t.js:
+//   1. saves the lead into our own CRM (crm.html), tagged with the site id and the ad it came from
+//   2. sends a Meta Conversions API event (Schedule by default; same event_id as the browser Pixel)
+// Cross-site: client pages post as text/plain (no CORS preflight); the response allows any origin.
 //   Storage: own server files (./data) or Vercel Blob — see api/_storage.js
 // Env vars: META_PIXEL_ID, META_CAPI_TOKEN, optional META_TEST_EVENT_CODE / META_API_VERSION
 import crypto from 'node:crypto';
@@ -20,13 +21,32 @@ function cleanAd(a) {
   return out;
 }
 
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST, GET, OPTIONS', 'access-control-allow-headers': 'content-type' };
+const reply = (obj, status = 200) => new Response(typeof obj === 'string' ? obj : JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...CORS } });
+const EVENTS = ['Schedule', 'Lead', 'CompleteRegistration', 'Contact', 'SubmitApplication'];
+
+function cleanExtra(x) {
+  if (!x || typeof x !== 'object') return undefined;
+  const out = {};
+  for (const k of Object.keys(x).slice(0, 25)) {
+    const key = String(k).replace(/[^\w\u4e00-\u9fff -]/g, '').slice(0, 40);
+    if (key) out[key] = str(String(x[k] ?? ''), 300);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function buildLead(body, now = Date.now()) {
   const id = new Date(now).toISOString().slice(2, 10).replace(/-/g, '') + '-' + crypto.randomBytes(3).toString('hex');
   return {
     id,
     created_at: new Date(now).toISOString(),
+    site: /^[a-z0-9-]{2,40}$/.test(str(body.site, 40)) ? str(body.site, 40) : 'adtomatic',
+    page: str(body.source_url, 200),
     name: str(body.name, 80),
     phone: str(body.phone, 30),
+    email: str(body.email, 120).toLowerCase(),
+    company: str(body.company, 120),
+    extra: cleanExtra(body.extra),
     industry: str(body.industry, 60),
     industry_other: str(body.industry_other, 80),
     challenge: str(body.challenge, 1000),
@@ -52,6 +72,7 @@ export function buildEvent(lead, body, headers, now = Date.now()) {
   const ua = str(headers.get('user-agent') || '', 400);
   const user_data = { country: [sha256('my')] };
   if (phone) { user_data.ph = [sha256(phone)]; user_data.external_id = [sha256(phone)]; }
+  if (lead.email) user_data.em = [sha256(lead.email)];
   if (fn) user_data.fn = [sha256(fn)];
   if (ln) user_data.ln = [sha256(ln)];
   if (str(body.fbp)) user_data.fbp = str(body.fbp);
@@ -59,7 +80,7 @@ export function buildEvent(lead, body, headers, now = Date.now()) {
   if (ip) user_data.client_ip_address = ip;
   if (ua) user_data.client_user_agent = ua;
   return {
-    event_name: 'Schedule',
+    event_name: EVENTS.includes(body.event_name) ? body.event_name : 'Schedule',
     event_time: Math.floor(now / 1000),
     event_id: lead.event_id,
     action_source: 'website',
@@ -71,10 +92,14 @@ export function buildEvent(lead, body, headers, now = Date.now()) {
 
 export async function POST(request) {
   let body;
-  try { body = JSON.parse(await request.text()); } catch { return new Response('bad json', { status: 400 }); }
-  if (str(body.website)) return Response.json({ ok: true });                    // honeypot: bots fill hidden field
-  if (!/^bk_[a-z0-9]{6,30}$/i.test(str(body.event_id, 64))) return new Response('bad event', { status: 400 });
-  if (!str(body.name) || normPhone(body.phone).length < 9) return new Response('missing fields', { status: 400 });
+  try { body = JSON.parse(await request.text()); } catch { return reply({ ok: false, error: 'bad json' }, 400); }
+  if (str(body.website)) return reply({ ok: true });                             // honeypot: bots fill hidden field
+  if (!/^bk_[a-z0-9]{6,30}$/i.test(str(body.event_id, 64))) return reply({ ok: false, error: 'bad event' }, 400);
+  const hasPhone = normPhone(body.phone).length >= 9, hasEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(str(body.email, 120));
+  if (!str(body.name) && !hasEmail) return reply({ ok: false, error: 'missing name' }, 400);
+  if (!hasPhone && !hasEmail) return reply({ ok: false, error: 'missing phone or email' }, 400);
+  const allow = (process.env.ANALYTICS_SITES || '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (allow.length && body.site && !allow.includes(String(body.site))) return reply({ ok: false, error: 'unknown site' }, 400);
 
   const lead = buildLead(body);
   let saved = false;
@@ -82,8 +107,10 @@ export async function POST(request) {
   catch (err) { console.error('CRM save failed', err, 'LEAD:', JSON.stringify(lead)); }   // lead still in Vercel logs
 
   try { await sendCapi(buildEvent(lead, body, request.headers)); } catch (err) { console.error('CAPI failed', err); }
-  return Response.json({ ok: true, id: lead.id, saved });
+  return reply({ ok: true, id: lead.id, saved });
 }
+
+export function OPTIONS() { return new Response(null, { status: 204, headers: CORS }); }
 
 // Health check: shows only whether settings exist (never their values)
 export function GET() {

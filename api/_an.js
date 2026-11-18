@@ -134,13 +134,13 @@ const SITE_CFG = {
     mainPage: '/'
   },
   _default: {
-    goal: ['booking_submit', 'form_submit', 'hs_form_submit'],
+    goal: ['booking_submit', 'lead_submit', 'form_submit', 'hs_form_submit'],
     goalLabel: '提交表单',
     funnel: [
       ['访问', () => true],
       ['有互动（点击 / 滚动过半）', (s) => s.n.click > 0 || Object.values(s.scr).some((v) => v >= 50)],
       ['开始填表', (s) => s.n.form_start > 0 || s.n.hs_form_ready > 0 && s.n.field_focus > 0],
-      ['提交表单', (s) => s.n.form_submit > 0 || s.n.hs_form_submit > 0 || s.n.booking_submit > 0]
+      ['提交表单', (s) => s.n.form_submit > 0 || s.n.hs_form_submit > 0 || s.n.booking_submit > 0 || s.n.lead_submit > 0]
     ],
     mainPage: null
   }

@@ -151,7 +151,7 @@ body{background:#F5F5F5}
   var $ = function (id) { return document.getElementById(id); };
   var S = [['new', '新 Lead'], ['contacted', '已联络'], ['confirmed', '已确认'], ['showed', '已出席'], ['no_show', 'No-show'], ['won', '成交'], ['lost', '不合适']];
   var LABEL = {}; S.forEach(function (x) { LABEL[x[0]] = x[1]; });
-  var key = '', leads = [], filter = 'all';
+  var key = '', leads = [], filter = 'all', siteF = '';
   try { key = sessionStorage.getItem('adt_crm') || ''; } catch (e) {}
 
   function api(method, body) {
@@ -186,6 +186,15 @@ body{background:#F5F5F5}
     // filters
     var f = $('filters');
     f.querySelectorAll('button').forEach(function (b) { b.remove(); });
+    var sites = {}; leads.forEach(function (l) { sites[l.site || 'adtomatic'] = 1; });
+    var old = $('site-f'); if (old) old.remove();
+    if (Object.keys(sites).length > 1) {
+      var ss = el('select', 'tsel'); ss.id = 'site-f'; ss.setAttribute('aria-label', '网站');
+      var o0 = el('option', '', '全部网站'); o0.value = ''; ss.appendChild(o0);
+      Object.keys(sites).sort().forEach(function (k) { var o = el('option', '', k); o.value = k; if (siteF === k) o.selected = true; ss.appendChild(o); });
+      ss.addEventListener('change', function () { siteF = ss.value; render(); });
+      f.insertBefore(ss, $('q'));
+    }
     [['all', '全部']].concat(S).forEach(function (x) {
       var b = el('button', '', x[1]); b.type = 'button'; b.setAttribute('aria-pressed', filter === x[0] ? 'true' : 'false');
       b.addEventListener('click', function () { filter = x[0]; render(); });
@@ -195,8 +204,9 @@ body{background:#F5F5F5}
     var q = $('q').value.trim().toLowerCase();
     var rows = leads.filter(function (l) {
       if (filter !== 'all' && l.status !== filter) return false;
+      if (siteF && (l.site || 'adtomatic') !== siteF) return false;
       if (!q) return true;
-      var a = l.ad || {}; return [l.name, l.phone, l.industry, l.industry_other, l.challenge, a.campaign, a.adset, a.ad, a.ad_id].join(' ').toLowerCase().indexOf(q) !== -1;
+      var a = l.ad || {}; return [l.name, l.phone, l.email, l.company, l.site, l.industry, l.industry_other, l.challenge, a.campaign, a.adset, a.ad, a.ad_id].join(' ').toLowerCase().indexOf(q) !== -1;
     });
     var list = $('list'); list.innerHTML = '';
     if (!rows.length) { list.appendChild(el('div', 'empty', leads.length ? '没有符合的 lead' : '还没有预约。客户在预约页提交后会出现在这里。')); return; }
@@ -204,13 +214,16 @@ body{background:#F5F5F5}
       var c = el('div', 'lead'); c.dataset.s = l.status;
       var top = el('div', 'top'); var left = el('div');
       left.appendChild(el('div', 'nm', l.name || '-'));
-      left.appendChild(el('div', 'meta', '提交：' + fmt(l.created_at) + ' · #' + l.id));
+      left.appendChild(el('div', 'meta', '提交：' + fmt(l.created_at) + ' · #' + l.id + (l.site && l.site !== 'adtomatic' ? ' · 网站：' + l.site : '')));
       top.appendChild(left);
       var sel = el('select'); sel.style.width = 'auto';
       S.forEach(function (x) { var o = el('option', '', x[1]); o.value = x[0]; if (l.status === x[0]) o.selected = true; sel.appendChild(o); });
       top.appendChild(sel); c.appendChild(top);
-      var r1 = el('div', 'row2'); r1.appendChild(el('b', '', '时间')); r1.appendChild(el('span', 'when', when(l))); c.appendChild(r1);
+      if (when(l) !== '-') { var r1 = el('div', 'row2'); r1.appendChild(el('b', '', '时间')); r1.appendChild(el('span', 'when', when(l))); c.appendChild(r1); }
       var r2 = el('div', 'row2'); r2.appendChild(el('b', '', '电话')); r2.appendChild(el('span', '', l.phone || '-')); c.appendChild(r2);
+      if (l.email) { var re = el('div', 'row2'); re.appendChild(el('b', '', 'Email')); re.appendChild(el('span', '', l.email)); c.appendChild(re); }
+      if (l.company) { var rc = el('div', 'row2'); rc.appendChild(el('b', '', '公司')); rc.appendChild(el('span', '', l.company)); c.appendChild(rc); }
+      if (l.extra) Object.keys(l.extra).forEach(function (k) { var rx = el('div', 'row2'); rx.appendChild(el('b', '', k)); rx.appendChild(el('span', '', l.extra[k])); c.appendChild(rx); });
       var r3 = el('div', 'row2'); r3.appendChild(el('b', '', '行业')); r3.appendChild(el('span', '', industry(l))); c.appendChild(r3);
       if (l.challenge) { var r4 = el('div', 'row2'); r4.appendChild(el('b', '', 'CPL / 挑战')); r4.appendChild(el('span', '', l.challenge)); c.appendChild(r4); }
       var ad = l.ad || {};
@@ -244,11 +257,11 @@ body{background:#F5F5F5}
   }
 
   function csv() {
-    var head = ['编号', '提交时间', '名字', '电话', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源', 'Campaign', 'Campaign ID', 'Ad set', 'Ad set ID', 'Ad', 'Ad ID', 'Placement'];
+    var head = ['编号', '提交时间', '网站', '名字', '电话', 'Email', '公司', '行业', '时间', 'CPL / 挑战', '状态', '备注', '来源', 'Campaign', 'Campaign ID', 'Ad set', 'Ad set ID', 'Ad', 'Ad ID', 'Placement', '其他栏位', '提交页面'];
     var esc = function (v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
     var lines = [head.map(esc).join(',')].concat(leads.map(function (l) {
       var a = l.ad || {};
-      return [l.id, fmt(l.created_at), l.name, l.phone, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, a.source || l.utm || '', a.campaign, a.campaign_id, a.adset, a.adset_id, a.ad, a.ad_id, a.placement].map(esc).join(',');
+      return [l.id, fmt(l.created_at), l.site || 'adtomatic', l.name, l.phone, l.email, l.company, industry(l), when(l), l.challenge, LABEL[l.status] || l.status, l.notes, a.source || l.utm || '', a.campaign, a.campaign_id, a.adset, a.adset_id, a.ad, a.ad_id, a.placement, l.extra ? JSON.stringify(l.extra) : '', l.page].map(esc).join(',');
     }));
     var blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
