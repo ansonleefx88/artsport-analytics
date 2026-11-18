@@ -1,6 +1,7 @@
 // Analytics collector for js/t.js (our pages + client pages, e.g. HubSpot).
-// Stores each beacon as one private file in Vercel Blob. Turned off unless ANALYTICS_ENABLED=1
-// (on the Hobby plan Blob writes are capped, and going over locks the store — CRM included).
+// Stores each beacon through _storage.js (own server: files in ./data · Vercel: private Blob).
+// Turned off unless ANALYTICS_ENABLED=1 (on Vercel Hobby, Blob writes are capped and going over
+// locks the store — CRM included. On our own server there is no such limit).
 // Optional ANALYTICS_SITES="adtomatic,client-a" = only accept these site ids.
 import { saveRaw } from './_an.js';
 

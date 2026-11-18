@@ -1,3 +1,60 @@
+# Adtomatic 免费 Zoom Landing Page + CRM + Analytics
+
+全部是我们自己的：网站、预约、CRM（`/crm`）、Analytics（CRM 里的第二个 tab）。
+两种跑法，**同一份代码**：
+
+| | 自己的服务器（现在用这个） | Vercel |
+|---|---|---|
+| 启动 | `node server.js` | 连 GitHub 自动部署 |
+| 资料存在哪 | 服务器上的 `data/` 文件夹 | Vercel Blob（私密） |
+| 写入上限 | 没有 | Hobby 每月 2,000 次 |
+| 设定 | `.env` 文件 | Environment Variables |
+
+## 在自己的服务器跑（没有 domain 也可以）
+
+需要：一台 Linux 服务器（VPS），装 **Node.js 20 或以上**。不用装 database，不用 `npm install`。
+
+```bash
+# 1. 拿代码
+git clone https://github.com/skyiededucation-png/Adtomatic-Sales-Page.git adtomatic
+cd adtomatic
+
+# 2. 设定
+cp .env.example .env
+nano .env            # 至少改 CRM_PASSWORD
+
+# 3. 试跑
+node server.js       # 看到 "Adtomatic running on http://SERVER-IP:3000"
+```
+
+打开 `http://服务器IP:3000`（网站）和 `http://服务器IP:3000/crm`（CRM）。打不开的话，在服务器防火墙开 3000 port（例如 `sudo ufw allow 3000`）。
+
+**一直开着（关掉 SSH 也不停）：**
+
+```bash
+sudo npm install -g pm2
+pm2 start server.js --name adtomatic
+pm2 save && pm2 startup      # 服务器重开机也会自动跑
+pm2 logs adtomatic           # 看 log
+```
+
+**更新代码：** `git pull && pm2 restart adtomatic`
+
+**备份：** 所有 lead 和 analytics 都在 `data/` 文件夹，定期复制出来（例如 `tar czf backup-$(date +%F).tgz data`）。`data/` 和 `.env` 不会上传到 GitHub。
+
+**之后买了 domain：**
+1. Domain 的 DNS 加一笔 A record 指向服务器 IP
+2. 装 Caddy（自动 HTTPS）：`/etc/caddy/Caddyfile` 写
+   ```
+   你的domain.com {
+     reverse_proxy localhost:3000
+   }
+   ```
+   然后 `sudo systemctl reload caddy`
+3. 有 HTTPS 之后才可以：接 HubSpot 客户的网站（HTTPS 页面不能送资料到 HTTP 网址）、在 Meta 做 domain verification
+
+---
+
 # Adtomatic 免费 Zoom Landing Page — 上线 SOP
 
 目标：广告 → Landing Page → 预约 Zoom → Meta 看到 **Schedule** 事件 → Ads Manager 的 Cost per Result = **Cost per Appointment**。
@@ -109,14 +166,10 @@ CRM 密码只给需要跟进的同事。客户资料是个人资料，不要截�
 
 不会记录客户打了什么字，只记录点了哪一格。
 
-### 开启（一定要先看这一段）
+### 开启
 
-⚠️ Vercel **Hobby** 的 Blob 每月只有 **2,000 次写入**。超过的话整个储存会被锁 **30 天**，CRM 也会一起停。Analytics 每个访问大约写 1–3 次，所以：
-
-1. 先把 Vercel 升级到 **Pro**（写入每 100 万次约 USD 5）
-2. Settings → Environment Variables 加 `ANALYTICS_ENABLED` = `1`
-3. （可选）`ANALYTICS_SITES` = `adtomatic,client-a,client-b`：只接受这些网站，第一个是 CRM 预设显示的
-4. Redeploy
+- **自己的服务器：** `.env` 里 `ANALYTICS_ENABLED=1`（`.env.example` 已经是开着的），`ANALYTICS_SITES=adtomatic,client-a`，然后 `pm2 restart adtomatic`
+- **Vercel：** ⚠️ Hobby 的 Blob 每月只有 2,000 次写入，超过会锁住储存 30 天（CRM 也会停）。要先升级 Pro，再加 `ANALYTICS_ENABLED` = `1` 并 Redeploy
 
 没开 `ANALYTICS_ENABLED` 之前，追踪代码不会写任何资料，CRM 预约照常运作。
 
@@ -139,8 +192,10 @@ Meta CAPI 本身不会回传 Ad ID 给我们；Ad ID 是靠这串网址参数带
 HubSpot → Settings → Content → Pages → **Site header HTML**（或单一页面的 Advanced → Head HTML），贴：
 
 ```html
-<script async src="https://你的网址/js/t.js" data-site="client-a"></script>
+<script async src="https://你的domain/js/t.js" data-site="client-a"></script>
 ```
+
+⚠️ HubSpot 页面是 HTTPS，所以我们这边也要有 domain + HTTPS 才收得到（见上面「之后买了 domain」）。
 
 - `data-site` 每个客户一个名字（小写英文、数字、-），在 CRM 的 Analytics 右上角切换
 - HubSpot 表单提交会自动记成 `hs_form_submit`，漏斗 = 访问 → 有互动 → 开始填表 → 提交表单

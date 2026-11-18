@@ -9,7 +9,7 @@ const json = (o, status = 200) => new Response(JSON.stringify(o), { status, head
 
 export async function GET(request) {
   if (!authed(request)) return json({ ok: false, error: 'unauthorized' }, 401);
-  if (!storeReady()) return json({ ok: false, error: 'CRM 储存还没开（Vercel → Storage → Blob → Private）' }, 500);
+  if (!storeReady()) return json({ ok: false, error: 'CRM 储存还没设定' }, 500);
   try { return json({ ok: true, leads: await listLeads() }); }
   catch (err) { console.error(err); return json({ ok: false, error: 'read failed' }, 500); }
 }

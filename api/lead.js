@@ -1,11 +1,12 @@
 // Booking form submit (book.html):
 //   1. saves the lead into our own CRM (crm.html)
 //   2. sends a Meta Conversions API "Schedule" event (same event_id as the browser Pixel)
-//   Storage: Vercel Blob private store connected to the project (see api/_store.js)
+//   Storage: own server files (./data) or Vercel Blob — see api/_storage.js
 // Env vars: META_PIXEL_ID, META_CAPI_TOKEN, optional META_TEST_EVENT_CODE / META_API_VERSION
 import crypto from 'node:crypto';
 import { sha256, str, normPhone, sendCapi } from './_lib.js';
 import { saveLead, storeReady } from './_store.js';
+import { storageMode } from './_storage.js';
 
 // Which Meta campaign / ad set / ad the lead came from (from the ad's URL parameters)
 function cleanAd(a) {
@@ -91,6 +92,7 @@ export function GET() {
     ok: true,
     service: 'booking → CRM + Meta CAPI',
     crm: storeReady(),
+    storage: storageMode(),
     check: {
       BLOB_STORE_ID: has('BLOB_STORE_ID'),
       BLOB_READ_WRITE_TOKEN: has('BLOB_READ_WRITE_TOKEN'),

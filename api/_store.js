@@ -1,49 +1,27 @@
-// CRM storage layer. Everything that reads/writes leads goes through this file,
-// so moving to our own CRM / database later means changing only this file.
-//
-// Current backend: Vercel Blob (private store) — Vercel's own storage, inside the same
-// Vercel project. No outside account. Each lead is one private JSON file: crm/leads/<id>.json
-// Setup: Vercel → Project → Storage → Create → Blob → Access: Private → Connect to project.
-import { put, list, get } from '@vercel/blob';
+// CRM storage. Each lead is one JSON object: crm/leads/<id>.json
+// Where it is stored (own server files or Vercel Blob) is decided in _storage.js.
+import { putJson, getJson, listKeys, storageReady } from './_storage.js';
 
 const PREFIX = 'crm/leads/';
-const pathOf = (id) => PREFIX + id + '.json';
+const keyOf = (id) => PREFIX + id + '.json';
 
-export function storeReady() {
-  // Connecting a store to the project adds BLOB_STORE_ID (OIDC auth) or BLOB_READ_WRITE_TOKEN.
-  return !!(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
-}
+export const storeReady = storageReady;
 
 export async function saveLead(lead) {
-  await put(pathOf(lead.id), JSON.stringify(lead), {
-    access: 'private',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json'
-  });
+  await putJson(keyOf(lead.id), lead);
   return lead;
 }
 
 export async function getLead(id) {
-  const r = await get(pathOf(id), { access: 'private', useCache: false });
-  if (!r || r.statusCode !== 200) return null;
-  return JSON.parse(await new Response(r.stream).text());
+  return getJson(keyOf(id), { fresh: true });
 }
 
 export async function listLeads(max = 1000) {
-  const blobs = [];
-  let cursor;
-  do {
-    const page = await list({ prefix: PREFIX, limit: 1000, cursor });
-    blobs.push(...page.blobs);
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor && blobs.length < 5000);
-
-  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  const ids = blobs.slice(0, max).map((b) => b.pathname.slice(PREFIX.length).replace(/\.json$/, ''));
-
+  const items = await listKeys(PREFIX);
+  items.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  const ids = items.slice(0, max).map((b) => b.pathname.slice(PREFIX.length).replace(/\.json$/, ''));
   const out = [];
-  for (let i = 0; i < ids.length; i += 25) {                       // 25 reads at a time
+  for (let i = 0; i < ids.length; i += 25) {
     const chunk = await Promise.all(ids.slice(i, i + 25).map((id) => getLead(id).catch(() => null)));
     out.push(...chunk.filter(Boolean));
   }

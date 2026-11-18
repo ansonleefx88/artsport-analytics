@@ -3,30 +3,14 @@
 // Hour rollups:  an/<site>/roll/<YYYY-MM-DD>/<HH>.json   (built once the hour is over)
 // Day rollups:   an/<site>/roll/<YYYY-MM-DD>/day.json    (built once the day is over)
 // Rollups hold one compact summary per session, so any date range / filter is computed from them.
-import { put, list, get } from '@vercel/blob';
+// Stored through _storage.js (own server: ./data files · Vercel: private Blob).
+import { putJson, getJson, listKeys as listAll } from './_storage.js';
 
 const MY = 8 * 3600e3;
 export const myDate = (ts) => new Date(ts + MY).toISOString().slice(0, 10);
 export const myHour = (ts) => new Date(ts + MY).toISOString().slice(11, 13);
 const rnd = () => Math.random().toString(36).slice(2, 8);
 
-async function putJson(path, obj) {
-  await put(path, JSON.stringify(obj), { access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json' });
-}
-async function getJson(path) {
-  const r = await get(path, { access: 'private' });
-  if (!r || r.statusCode !== 200) return null;
-  return JSON.parse(await new Response(r.stream).text());
-}
-async function listAll(prefix) {
-  const out = []; let cursor;
-  do {
-    const page = await list({ prefix, limit: 1000, cursor });
-    out.push(...page.blobs);
-    cursor = page.hasMore ? page.cursor : undefined;
-  } while (cursor && out.length < 50000);
-  return out;
-}
 async function pool(items, n, fn) {
   const out = [];
   for (let i = 0; i < items.length; i += n) out.push(...await Promise.all(items.slice(i, i + n).map(fn)));
