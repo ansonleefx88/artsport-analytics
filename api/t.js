@@ -1,7 +1,7 @@
 // Analytics collector for js/t.js (our pages + client pages, e.g. HubSpot).
 // Stores each beacon through _storage.js (own server: files in ./data · Vercel: private Blob).
-// Turned off unless ANALYTICS_ENABLED=1 (on Vercel Hobby, Blob writes are capped and going over
-// locks the store — CRM included. On our own server there is no such limit).
+// On by default. ANALYTICS_ENABLED=0 turns it off. Vercel Hobby caps Blob writes (2,000 / month);
+// going over locks the store for 30 days — CRM included — until you upgrade to Pro.
 // Optional ANALYTICS_SITES="adtomatic,client-a" = only accept these site ids.
 import { saveRaw } from './_an.js';
 
@@ -33,7 +33,7 @@ function cleanEvent(e) {
 export function OPTIONS() { return ok(); }
 
 export async function POST(request) {
-  if (process.env.ANALYTICS_ENABLED !== '1') return ok();
+  if (process.env.ANALYTICS_ENABLED === '0') return ok();
   const ua = request.headers.get('user-agent') || '';
   if (/bot|crawl|spider|facebookexternalhit|headless|lighthouse/i.test(ua)) return ok();
   const raw = await request.text();

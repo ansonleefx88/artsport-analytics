@@ -169,9 +169,8 @@ CRM 密码只给需要跟进的同事。客户资料是个人资料，不要截�
 ### 开启
 
 - **自己的服务器：** `.env` 里 `ANALYTICS_ENABLED=1`（`.env.example` 已经是开着的），`ANALYTICS_SITES=adtomatic,client-a`，然后 `pm2 restart adtomatic`
-- **Vercel：** ⚠️ Hobby 的 Blob 每月只有 2,000 次写入，超过会锁住储存 30 天（CRM 也会停）。要先升级 Pro，再加 `ANALYTICS_ENABLED` = `1` 并 Redeploy
-
-没开 `ANALYTICS_ENABLED` 之前，追踪代码不会写任何资料，CRM 预约照常运作。
+- **Vercel：** 默认已经开着，连好 Blob 就会开始记录。每个页面浏览大约写 1 次。⚠️ Hobby 每月 2,000 次写入，用完会锁住储存 30 天（CRM 也会停），Vercel 会先发 email 提醒，看到就升级 Pro
+- 要关掉：`ANALYTICS_ENABLED` = `0`
 
 ### Meta 广告网址参数（知道 lead 是哪一个 Ad 来的）
 

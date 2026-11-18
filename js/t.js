@@ -166,12 +166,14 @@
   var active = 0, lastAct = Date.now(), visible = !d.hidden;
   ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (ev) { w.addEventListener(ev, function () { lastAct = Date.now(); }, { passive: true }); });
   setInterval(function () { if (visible && Date.now() - lastAct < 30000) active += 1; }, 1000);
+  var left = false;
   function leave() {
+    if (left) return; left = true;
     Object.keys(inView).forEach(function (n) { dwell[n] += Date.now() - inView[n]; inView[n] = Date.now(); });
     var ds = {}; Object.keys(dwell).forEach(function (n) { if (dwell[n] > 0) ds[n] = Math.round(dwell[n] / 1000); });
     push('leave', { e: active, dw: ds, mx: Math.max.apply(null, [0].concat(Object.keys(hit).map(Number))) });
     flush(true);
   }
-  d.addEventListener('visibilitychange', function () { visible = !d.hidden; if (d.hidden) leave(); });
+  d.addEventListener('visibilitychange', function () { visible = !d.hidden; if (d.hidden) leave(); else left = false; });
   w.addEventListener('pagehide', leave);
 })();

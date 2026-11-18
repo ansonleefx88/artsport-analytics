@@ -20,7 +20,7 @@ export async function GET(request) {
   else if (range === 'custom' && /^\d{4}-\d{2}-\d{2}$/.test(q.get('from') || '') && /^\d{4}-\d{2}-\d{2}$/.test(q.get('to') || '')) { from = q.get('from'); to = q.get('to'); }
   const filt = {}; for (const k of ['source', 'campaign', 'adset', 'ad', 'dev']) if (q.get(k)) filt[k] = q.get(k);
 
-  if (process.env.ANALYTICS_ENABLED !== '1') return json({ ok: true, disabled: true, sites, site, from, to });
+  if (process.env.ANALYTICS_ENABLED === '0') return json({ ok: true, disabled: true, sites, site, from, to });
   try {
     const all = await rangeSessions(site, from, to);
     return json({ ok: true, sites, site, from, to, filters: filt, ...report(all, site, filt) });

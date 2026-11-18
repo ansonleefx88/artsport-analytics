@@ -4,7 +4,7 @@
 // Day rollups:   an/<site>/roll/<YYYY-MM-DD>/day.json    (built once the day is over)
 // Rollups hold one compact summary per session, so any date range / filter is computed from them.
 // Stored through _storage.js (own server: ./data files · Vercel: private Blob).
-import { putJson, getJson, listKeys as listAll } from './_storage.js';
+import { putJson, getJson, listKeys as listAll, storageMode } from './_storage.js';
 
 const MY = 8 * 3600e3;
 export const myDate = (ts) => new Date(ts + MY).toISOString().slice(0, 10);
@@ -97,6 +97,13 @@ export async function daySessions(site, date, now = Date.now()) {
   const closedDay = date < today;
   const dayPath = `an/${site}/roll/${date}/day.json`;
   if (closedDay) { const r = await getJson(dayPath).catch(() => null); if (r) return r; }
+  if (storageMode() === 'blob') {
+    // Vercel Blob (Hobby has a low write cap): 1 listing per day, no hourly rollup files,
+    // only a finished day is saved once as a rollup.
+    const S = await buildFromRaw(`an/${site}/raw/${date}/`);
+    if (closedDay) await putJson(dayPath, S).catch((e) => console.error('day roll save', e));
+    return S;
+  }
   const hours = [];
   for (let h = 0; h < 24; h++) { const hh = String(h).padStart(2, '0'); if (closedDay || hh <= curH) hours.push(hh); }
   const parts = await pool(hours, 6, (hh) => hourSessions(site, date, hh, closedDay || hh < curH));
