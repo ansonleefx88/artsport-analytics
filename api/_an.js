@@ -133,7 +133,31 @@ const SITE_CFG = {
     ],
     mainPage: '/'
   },
-  _default: {
+  _default: {  // ---- ArtSport Badminton (landing pages on Cloudflare, booking via WhatsApp) ----
+  artsport: {
+    goal: ['booking_submit'],
+    goalLabel: '按 WhatsApp 预约',
+    funnel: [
+      ['打开页面', () => true],
+      ['播放视频', (s) => Object.keys(s.vid_).length > 0],
+      ['滑到预约区', (s) => Object.keys(s.sec).some((k) => k.endsWith('|预约区'))],
+      ['开始选预约', (s) => Object.keys(s.clk).some((k) => k.split('|')[1] === '预约区')],
+      ['按 WhatsApp 预约', (s) => s.n.booking_submit > 0]
+    ],
+    mainPage: '/'
+  },
+  'artsport-kulim': {
+    goal: ['booking_submit'],
+    goalLabel: 'Send WhatsApp 预约',
+    funnel: [
+      ['打开页面', () => true],
+      ['播放视频', (s) => Object.keys(s.vid_).length > 0],
+      ['滑到预约区', (s) => Object.keys(s.sec).some((k) => k.endsWith('|预约区'))],
+      ['开始选预约', (s) => Object.keys(s.clk).some((k) => k.split('|')[1] === '预约区')],
+      ['按 WhatsApp 预约', (s) => s.n.booking_submit > 0]
+    ],
+    mainPage: '/kulim'
+  },
     goal: ['booking_submit', 'lead_submit', 'form_submit', 'hs_form_submit'],
     goalLabel: '提交表单',
     funnel: [
